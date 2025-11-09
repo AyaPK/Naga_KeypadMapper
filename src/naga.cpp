@@ -22,6 +22,7 @@
 #include <linux/input.h>
 #include <sys/select.h>
 #include <cstring>
+#include <cctype>
 #define DEV_NUM_KEYS 12
 #define EXTRA_BUTTONS 2
 #define OFFSET 263
@@ -216,6 +217,8 @@ public:
     const string keydownop = "xdotool keydown --window getactivewindow ";
     const string keyupop = "xdotool keyup --window getactivewindow ";
     const string clickop = "xdotool click ";
+    const string mousedownop = "xdotool mousedown ";
+    const string mouseupop = "xdotool mouseup ";
     const string workspace_r = "xdotool set_desktop --relative -- ";
     const string workspace = "xdotool set_desktop ";
     const string position = "xdotool mousemove ";
@@ -237,9 +240,20 @@ public:
 	break;
       case Operators::run:         command = "setsid " + args[i][j] + " &";if(eventCode==0) execution=false; break;
       case Operators::run2:        command = "setsid " + args[i][j] + " &"; break;
-      case Operators::click:       command = clickop + args[i][j];         if(eventCode==0) execution=false; break;
-      case Operators::workspace_r: command = workspace_r + args[i][j];	   if(eventCode==0) execution=false; break;
-      case Operators::workspace:   command = workspace + args[i][j];	   if(eventCode==0) execution=false; break;
+      case Operators::click: {
+        const std::string &arg = args[i][j];
+        bool is_numeric = !arg.empty() && std::all_of(arg.begin(), arg.end(), [](unsigned char c){ return std::isdigit(c); });
+        if (is_numeric) {
+          if(eventCode==1)           command = mousedownop + arg;
+          else if(eventCode==0)      command = mouseupop + arg;
+        } else {
+          if(eventCode==1)           command = clickop + arg;
+          else                       execution=false;
+        }
+        break;
+      }
+      case Operators::workspace_r: command = workspace_r + args[i][j];    if(eventCode==0) execution=false; break;
+      case Operators::workspace:   command = workspace + args[i][j];    if(eventCode==0) execution=false; break;
       case Operators::position:    command = position + args[i][j];        if(eventCode==0) execution=false; break;
       case Operators::media:       command = "xdotool key XF86" + args[i][j] + " "; if(eventCode==0) execution=false; break;
       case Operators::delay: //delay execution n milliseconds
